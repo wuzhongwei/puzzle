@@ -1,0 +1,193 @@
+<!DOCTYPE HTML>
+<html>
+<body>
+
+<div id="box" class="box">
+</div>
+<img width="300" src="img1.webp" alt="">
+<button id="chaos">打乱拼图</button>
+<button id="btn">验证拼图</button>
+<style>
+  body {
+    margin: 0;
+  }
+  .box { 
+    width: 300px;
+    position: relative;
+    margin: 100px auto;
+  }
+  .box-item {
+    width: 100px;
+    background-color: red;
+    height: 100px;
+    position: absolute;
+    border: solid 1px #ddd;
+    box-sizing: border-box;
+    user-select: none;
+    background-repeat: no-repeat;
+    background-image: url('img1.webp');
+    background-size: 300px 300px;
+  }
+  .red {
+    color: red;
+    padding: 2px;
+    background-color: #fff;
+    pointer-events: none;
+  }
+  /* .box-item:nth-of-type(1) {
+    background-position: 0 0;
+  }
+  .box-item:nth-of-type(2) {
+    background-position: -100px 0;
+  }
+  .box-item:nth-of-type(3) {
+    background-position: -200px 0;
+  }
+  .box-item:nth-of-type(4) {
+    background-position: 0 -100px;
+  }
+  .box-item:nth-of-type(5) {
+    background-position: -100px -100px;
+  }
+  .box-item:nth-of-type(6) {
+    background-position: -200px -100px;
+  }
+
+  .box-item:nth-of-type(7) {
+    background-position: 0 -200px;
+  }
+  .box-item:nth-of-type(8) {
+    background-position: -100px -200px;
+  }
+  .box-item:nth-of-type(9) {
+    background-position: -200px -200px;
+  } */
+</style>
+<script>
+  var img = 'img1.webp'
+  var box = document.getElementById('box'),
+  btn = document.getElementById('btn'),
+  chaosBtn = document.getElementById('chaos'),
+  boxItems = box.getElementsByTagName('div'), 
+  strDom = '', downL = 0, downT = 0, zIndex = 0, startL = 0, startT = 0, postions = [],
+  isDown = true;
+  for (let i = 0; i < 9; i++) {
+    strDom += `<div class="box-item"><span class="red">${i+1}</span></div>`
+  }
+  box.innerHTML = strDom
+
+  for (let i = 0 ; i < boxItems.length; i++) {
+    let targetDom = boxItems[i]
+    let left = targetDom.offsetWidth * (i % 3)
+    let top = targetDom.offsetHeight * Math.floor(i / 3)
+    
+    postions[i] = {left, top, index: i}
+    targetDom.onmousedown = function (e) {
+      if (!isDown) return
+      isDown = false
+      let _this = this
+      let maxItem = null
+      downL = e.clientX
+      downT = e.clientY
+      startL = e.target.offsetLeft
+      startT = e.target.offsetTop
+      e.target.style.zIndex = ++zIndex
+      document.onmousemove = function (e) {
+        let arr = []
+        let minNum = 999999
+        targetDom.style.left = e.x - downL + startL + 'px'
+        targetDom.style.top = e.y - downT + startT + 'px'
+        for (let j = 0; j < boxItems.length; j++) {
+          if (boxItems[j] !== _this) {
+            if (pengz(_this, boxItems[j])) { 
+              arr.push(boxItems[j])
+            }
+          }
+        }
+        if (arr.length) {
+          for (let k = 0; k < arr.length; k++) {
+            let numTop = Math.abs(_this.offsetTop - arr[k].offsetTop)
+            let numLeft = Math.abs(_this.offsetLeft - arr[k].offsetLeft)
+            let sum = numTop + numLeft
+            if (minNum >= sum) { // 求最小值
+              minNum = sum
+              maxItem = arr[k]
+            }
+          }
+        } else {
+          maxItem = null
+        }
+        
+      }
+      document.onmouseup = function (e) {
+        document.onmouseup = null
+        document.onmousemove = null
+        function myFunction () {
+          _this.style.transition = maxItem.style.transition = 'none'
+          isDown = true
+          _this.removeEventListener("transitionend", myFunction)
+        }
+        
+        if (maxItem) {  // 有叠加替换
+          let tempIndex = maxItem.index
+          _this.style.left = maxItem.offsetLeft + 'px'
+          _this.style.top = maxItem.offsetTop + 'px'
+          maxItem.style.left = startL + 'px'
+          maxItem.style.top = startT + 'px'
+          _this.style.transition = maxItem.style.transition = '.2s'
+          maxItem.index = _this.index
+          _this.index = tempIndex
+          _this.addEventListener("transitionend", myFunction)
+          maxItem.addEventListener("transitionend", myFunction)
+        } else {
+          _this.style.left = startL + 'px'
+          _this.style.top = startT + 'px'
+          isDown = true
+        }
+      }
+    }
+  }
+  chaos()
+  chaosBtn.onclick = function () {
+    chaos()
+  }
+  // 校验拼图是否正确
+  btn.onclick = function () {
+    let num = 0
+    for (var i = 0; i < boxItems.length; i++) {
+      if (boxItems[i].index === num) {
+        num++
+      }
+    }
+    if (boxItems.length === num) {
+      alert('拼图成功')
+      console.log('postions', boxItems)
+    } else {
+      console.log('错误拼图', boxItems, num)
+    }
+  }
+  function chaos () {
+    postions.sort(() => 0.5 - Math.random()) // 打乱
+    for (let i = 0 ; i < boxItems.length; i++) { 
+      boxItems[i].index = postions[i].index
+      boxItems[i].style.left = postions[i].left + 'px'
+      boxItems[i].style.top = postions[i].top + 'px'
+      boxItems[i].style.backgroundPosition = `-${100 * (i % 3)}px -${100 * Math.floor(i / 3)}px`
+    }
+  }
+  function pengz (dom1, dom2) {
+    let left = dom1.offsetLeft + dom1.offsetWidth
+    let top = dom1.offsetTop + dom1.offsetHeight
+    let right = dom1.offsetLeft
+    let bottom = dom1.offsetTop
+    if (dom2.offsetLeft <= left 
+    && dom2.offsetLeft + dom2.offsetWidth >= right 
+    && top >= dom2.offsetTop 
+    && dom2.offsetTop + dom2.offsetHeight >= bottom) {
+      return true
+    }
+  }
+</script>
+</body>
+</html>
+
